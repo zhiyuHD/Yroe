@@ -55,6 +55,10 @@ check_dependencies() {
         need_update=1
     fi
     
+    if ! command -v jp2a &> /dev/null; then
+        missing+=(jp2a)
+        need_update=1
+    fi
     if [ $need_update -eq 1 ]; then
         echo -e "${YELLOW}⚠ 缺少依赖: ${missing[*]}${NC}"
         read -p "是否安装？[y/N]: " -n 1 -r
@@ -67,6 +71,7 @@ check_dependencies() {
                     "proot-distro") pkg install proot-distro -y ;;
                     "dialog") pkg install dialog -y ;;
                     "aria2") pkg install aria2 -y ;;
+                    "jp2a") pkg install jp2a -y ;;
                 esac
             done
             echo -e "${GREEN}✓ 依赖安装完成${NC}"
