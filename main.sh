@@ -215,11 +215,11 @@ install_container_submenu() {
     while true; do
         CHOICE=$(dialog --clear --title "安装容器" \
             --menu "选择要安装的发行版:" 15 40 5 \
-            1 "Ubuntu" \
-            2 "Debian" \
-            3 "Arch Linux" \
-            4 "Alpine" \
-            0 "返回上级菜单" \
+            1 "👨🏻 Ubuntu (以桌面用户体验为核心的发行版)" \
+            2 "👨🏻‍🦳 Debian (以稳定为中心的发行版)" \
+            3 "🧒🏻 Arch Linux (滚动更新，保持软件最新，挂自修)" \
+            4 "👶🏻 Alpine (极致轻量化)" \
+            0 "🌚 返回上级菜单" \
             2>&1 >/dev/tty)
         
         clear
@@ -369,12 +369,13 @@ backup_container_submenu() {
 container_menu() {
     while true; do
         CHOICE=$(dialog --clear --title "容器管理" \
-            --menu "选择一个操作:" 18 50 6 \
+            --menu "选择一个操作:" 18 50 7 \
             1 "安装容器" \
             2 "启动容器" \
             3 "列出容器" \
             4 "删除容器" \
             5 "备份容器" \
+            6 "后处理容器" \
             0 "返回上级菜单" \
             2>&1 >/dev/tty)
         
@@ -397,13 +398,41 @@ container_menu() {
             5)
                 backup_container_submenu
                 ;;
+            6)
+                # 后处理容器
+                local containers=()
+                if [ -d "$PROOT_DISTRO_DIR" ]; then
+                    for dir in "$PROOT_DISTRO_DIR"/*/; do
+                        [ -d "$dir" ] && containers+=("$(basename "$dir")")
+                    done
+                fi
+                if [ ${#containers[@]} -eq 0 ]; then
+                    dialog --msgbox "暂无已安装的容器" 8 30
+                    continue
+                fi
+                local menu_items=()
+                local idx=1
+                for c in "${containers[@]}"; do
+                    menu_items+=("$idx" "$c")
+                    ((idx++))
+                done
+                local choice=$(dialog --clear --title "选择容器" \
+                    --menu "请选择要后处理的容器:" 15 40 5 "${menu_items[@]}" \
+                    2>&1 >/dev/tty)
+                clear
+                if [ -n "$choice" ] && [ "$choice" -ge 1 ] 2>/dev/null; then
+                    local selected="${containers[$((choice-1))]}"
+                    # 加载后处理模块（注意：使用 MODULE_PATH）
+                    source "$MODULE_PATH/post_process.sh"
+                    post_process_menu "$selected"
+                fi
+                ;;
             0|*)
                 break
                 ;;
         esac
     done
 }
-
 # ============================================
 # 缓存管理子菜单
 # ============================================
@@ -441,11 +470,11 @@ main_menu() {
     while true; do
         CHOICE=$(dialog --clear --title "Yroe 工具箱" \
             --menu "选择一个操作:" 16 50 5 \
-            1 "容器管理" \
-            2 "缓存管理" \
-            3 "换源（仅限 Termux）" \
-            4 "生成快捷启动脚本" \
-            0 "退出" \
+            1 "☘️ PRoot 容器管理" \
+            2 "🧹 缓存管理" \
+            3 "🌏 换源（仅限 Termux）" \
+            4 "🚀 生成快捷启动脚本" \
+            0 "🌚 退出" \
             2>&1 >/dev/tty)
         
         clear

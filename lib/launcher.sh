@@ -4,15 +4,43 @@
 # Yroe - 快捷启动脚本生成
 # ============================================
 
-source "$HOME/.yroe/lib/core.sh"
-source "$HOME/.yroe/lib/container.sh"
+# 获取模块路径（与 main.sh 逻辑一致）
+get_script_dir() {
+    local source="${BASH_SOURCE[0]}"
+    while [ -L "$source" ]; do
+        local dir=$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)
+        source=$(readlink "$source")
+        [[ $source != /* ]] && source="$dir/$source"
+    done
+    cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd
+}
 
-YROE_BIN_DIR="$HOME/.yroe/bin"
-SHELL_RC="$HOME/.bashrc"
+SCRIPT_DIR=$(get_script_dir)
+SCRIPT_NAME=$(basename "${BASH_SOURCE[0]}")
 
-if [ -n "$ZSH_VERSION" ]; then
-    SHELL_RC="$HOME/.zshrc"
+# 智能判断模块路径
+if [ "$SCRIPT_NAME" = "launcher.sh" ] && [ "$SCRIPT_DIR" != "$HOME/.yroe/lib" ]; then
+    # 开发模式：从项目目录加载
+    MODULE_PATH="${SCRIPT_DIR}/lib"
+else
+    # 安装模式：从用户目录加载
+    MODULE_PATH="$HOME/.yroe/lib"
 fi
+
+# 使用 MODULE_PATH 加载
+source "$MODULE_PATH/core.sh"
+source "$MODULE_PATH/container.sh"
+
+# 检测 shell 配置文件
+detect_shell_rc() {
+    case "$SHELL" in
+        */zsh)  echo "$HOME/.zshrc" ;;
+        */bash) echo "$HOME/.bashrc" ;;
+        *)      echo "$HOME/.bashrc" ;;
+    esac
+}
+
+SHELL_RC=$(detect_shell_rc)
 
 # 检查 PATH 是否已添加
 is_path_configured() {
@@ -36,9 +64,7 @@ add_path_to_rc() {
 # 生成单个容器的启动脚本
 generate_launcher() {
     local alias="$1"
-    local script_path="$YROE_BIN_DIR/$alias"
-    
-    mkdir -p "$YROE_BIN_DIR"
+    local script_path="$YROE_BIN_DIR/$alias"  # 使用全局变量
     
     cat > "$script_path" << EOF
 #!/data/data/com.termux/files/usr/bin/bash
@@ -83,5 +109,5 @@ generate_all_launchers() {
     echo ""
     echo -e "${GREEN}✓ 全部生成完成！${NC}"
     echo -e "请运行 ${YELLOW}source $SHELL_RC${NC} 或重新打开 Termux 生效"
-    echo -e "然后直接输入容器名即可启动，例如: ${GREEN}alpine${NC}"
+    echo -e "然后直接输入容器名即可启动，例如: ${GREEN}$(echo "$containers" | head -1)${NC}"
 }
